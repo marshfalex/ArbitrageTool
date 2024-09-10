@@ -1,1 +1,1 @@
-[![The Odds API](https://avatars.githubusercontent.com/u/58292828?v=4)](https://the-odds-api.com)
+[![The Odds API](https://the-odds-api.com/assets/img/logo.png)](https://the-odds-api.com)
