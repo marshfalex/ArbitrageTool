@@ -101,14 +101,9 @@ def process_data(matches: Iterable, include_started_matches: bool = True) -> Gen
 
 # Function to find and return arbitrage opportunities based on the API data
 def get_arbitrage_opportunities(key: str, region: str, cutoff: float):
-    # Get the list of available sports
     sports = get_sports(key)
-    # Get and aggregate betting data for all sports
     data = chain.from_iterable(get_data(key, sport, region=region) for sport in sports)
     data = filter(lambda x: x != "message", data)
-    # Process the data to find arbitrage opportunities
     results = process_data(data)
-    # Filter results based on the cutoff for total implied odds
-    arbitrage_opportunities = filter(lambda x: 0 < x["total_implied_odds"] < 1-cutoff, results)
-
+    arbitrage_opportunities = list(filter(lambda x: 0 < x["total_implied_odds"] < 1-cutoff, results))
     return arbitrage_opportunities
