@@ -1,59 +1,43 @@
+import PySimpleGUI as sg
 from src.mainlogic import get_arbitrage_opportunities
 import os
-import argparse
 from dotenv import load_dotenv
-from rich import print
 
 def main():
-    # Load environment variables from a .env file
     load_dotenv()
 
-    # Set up argument parser for command-line inputs
-    parser = argparse.ArgumentParser(
-        prog="Arbitrage Finder",
-        description=__doc__  # Use the module's docstring as the description
-    )
-    parser.add_argument(
-        "--key",
-        default=os.environ.get("API_KEY"),  # Default API key from environment variables
-    )
-    parser.add_argument(
-        "--region",
-        choices=["eu", "us", "au", "uk"],  # Restrict choices to these regions
-        default="us",  # Default region
-    )
-    parser.add_argument(
-        "--unformatted",
-        action="store_true",  # Flag for unformatted output
-    )
-    parser.add_argument(
-        "--cutoff",
-        type=float,
-        default=0,  # Default cutoff value for filtering arbitrage opportunities
-    )
-    args = parser.parse_args()
+    layout = [
+        [sg.Text("API Key:"), sg.Input(key="API_KEY", default_text=os.environ.get("API_KEY", ""))],
+        [sg.Text("Region:"), sg.Combo(["eu", "us", "au", "uk"], default_value="us", key="REGION")],
+        [sg.Text("Cutoff (%):"), sg.Input(key="CUTOFF", default_text="0")],
+        [sg.Button("Find Arbitrage Opportunities"), sg.Button("Exit")],
+        [sg.Multiline(size=(80, 20), key="OUTPUT", disabled=True)]
+    ]
 
-    # Adjust cutoff for percentage input
-    cutoff = args.cutoff / 100
+    window = sg.Window("Arbitrage Finder", layout)
 
-    # Retrieve arbitrage opportunities using the provided API key and parameters
-    arbitrage_opportunities = get_arbitrage_opportunities(key=args.key, region=args.region, cutoff=cutoff)
+    while True:
+        event, values = window.read()
+        if event == sg.WINDOW_CLOSED or event == "Exit":
+            break
+        if event == "Find Arbitrage Opportunities":
+            api_key = values["API_KEY"]
+            region = values["REGION"]
+            cutoff = float(values["CUTOFF"]) / 100
 
-    # Print the results based on the format specified by the user
-    if args.unformatted:
-        # Print raw list of arbitrage opportunities
-        print(list(arbitrage_opportunities))
-    else:
-        # Convert generator to list and print summary
-        arbitrage_opportunities = list(arbitrage_opportunities)
-        print(f"{len(arbitrage_opportunities)} arbitrage opportunities found")
+            arbitrage_opportunities = get_arbitrage_opportunities(key=api_key, region=region, cutoff=cutoff)
+            
+            output = []
+            for arb in arbitrage_opportunities:
+                output.append(f"{arb['match_name']} in {arb['league']}")
+                output.append(f"Total implied odds: {arb['total_implied_odds']}")
+                for key, value in arb['best_outcome_odds'].items():
+                    output.append(f"{key} with {value[0]} for {value[1]}")
+                output.append("")
 
-        # Print detailed information for each arbitrage opportunity
-        for arb in arbitrage_opportunities:
-            print(f"\t[italic]{arb['match_name']} in {arb['league']} [/italic]")
-            print(f"\t\tTotal implied odds: {arb['total_implied_odds']} with these odds:")
-            for key, value in arb['best_outcome_odds'].items():
-                print(f"\t\t{key} with {value[0]} for {value[1]}")
+            window["OUTPUT"].update("\n".join(output))
+
+    window.close()
 
 if __name__ == '__main__':
     main()
